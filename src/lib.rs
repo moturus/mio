@@ -2,7 +2,7 @@
     missing_docs,
     missing_debug_implementations,
     rust_2018_idioms,
-    unused_imports,
+//    unused_imports,
     dead_code
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
