@@ -77,6 +77,7 @@ fn map_moturus_error(err: moto_rt::ErrorCode) -> std::io::Error {
         E_UNEXPECTED_EOF => ErrorKind::UnexpectedEof,
         E_INVALID_ARGUMENT => ErrorKind::InvalidData,
         E_NOT_READY => ErrorKind::WouldBlock,
+        E_NOT_CONNECTED => ErrorKind::NotConnected,
         _ => ErrorKind::Other,
     };
 

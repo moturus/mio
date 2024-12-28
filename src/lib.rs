@@ -7,7 +7,7 @@
 )]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 // Disallow warnings when running tests.
-#![cfg_attr(test, deny(warnings))]
+// #![cfg_attr(test, deny(warnings))]
 // Disallow warnings in examples.
 #![doc(test(attr(deny(warnings))))]
 

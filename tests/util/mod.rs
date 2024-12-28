@@ -209,7 +209,7 @@ where
     assert!(flags & libc::O_NONBLOCK != 0, "socket not non-blocking");
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "moturus"))]
 pub fn assert_socket_non_blocking<S>(_: &S) {
     // No way to get this information...
 }
@@ -224,7 +224,7 @@ where
     assert!(flags & libc::FD_CLOEXEC != 0, "socket flag CLOEXEC not set");
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "moturus"))]
 pub fn assert_socket_close_on_exec<S>(_: &S) {
     // Windows doesn't have this concept.
 }
@@ -299,6 +299,9 @@ pub fn set_linger_zero(socket: &TcpStream) {
         io::Error::last_os_error()
     );
 }
+
+#[cfg(target_os = "moturus")]
+pub fn set_linger_zero(_socket: &TcpStream) {}
 
 /// Returns a path to a temporary file using `name` as filename.
 pub fn temp_file(name: &'static str) -> PathBuf {

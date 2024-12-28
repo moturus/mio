@@ -1,6 +1,5 @@
 #[cfg(all(
     unix,
-    target_os = "moturus",
     not(mio_unsupported_force_poll_poll),
     not(any(
         target_os = "aix",
