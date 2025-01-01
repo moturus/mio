@@ -138,7 +138,12 @@ pub fn expect_events(poll: &mut Poll, events: &mut Events, mut expected: Vec<Exp
     // In a lot of calls we expect more then one event, but it could be that
     // poll returns the first event only in a single call. To be a bit more
     // lenient we'll poll a couple of times.
-    for _ in 0..3 {
+    #[cfg(not(target_os = "moturus"))]
+    let N = 3;
+    #[cfg(target_os = "moturus")]
+    let N = 10;
+
+    for _ in 0..N {
         poll.poll(events, Some(Duration::from_millis(500)))
             .expect("unable to poll");
 
