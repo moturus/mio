@@ -18,7 +18,7 @@ pub(crate) fn listen(listener: &net::TcpListener, max_backlog: u32) -> io::Resul
 }
 
 pub(crate) fn connect(addr: SocketAddr) -> io::Result<i32> {
-    moto_rt::net::tcp_connect(&addr.into(), std::time::Duration::ZERO).map_err(map_moturus_error)
+    moto_rt::net::tcp_connect(&addr.into(), std::time::Duration::MAX, true).map_err(map_moturus_error)
 }
 
 pub(crate) fn accept(listener: &net::TcpListener) -> io::Result<(net::TcpStream, SocketAddr)> {
