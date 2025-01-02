@@ -5,7 +5,7 @@ use mio::net::TcpListener;
 use mio::{Interest, Token};
 use std::io::{self, Read};
 use std::net::{self, SocketAddr};
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "moturus"))]
 use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
 use std::sync::{Arc, Barrier};
 use std::thread;
@@ -115,7 +115,7 @@ fn get_ttl_without_previous_set() {
     assert!(listener.take_error().unwrap().is_none());
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "moturus"))]
 #[test]
 fn raw_fd() {
     init();
