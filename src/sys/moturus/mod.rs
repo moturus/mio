@@ -1,3 +1,5 @@
+pub use std::os::moturus::map_moturus_error;
+
 macro_rules! os_required {
     () => {
         panic!("mio must be compiled with `os-poll` to run.")
@@ -64,22 +66,3 @@ cfg_io_source! {
     }
 }
 
-fn map_moturus_error(err: moto_rt::ErrorCode) -> std::io::Error {
-    use moto_rt::error::*;
-
-    use std::io::ErrorKind;
-
-    let kind: ErrorKind = match err {
-        E_ALREADY_IN_USE => ErrorKind::AlreadyExists,
-        E_NOT_FOUND => ErrorKind::NotFound,
-        E_TIMED_OUT => ErrorKind::TimedOut,
-        E_NOT_IMPLEMENTED => ErrorKind::Unsupported,
-        E_UNEXPECTED_EOF => ErrorKind::UnexpectedEof,
-        E_INVALID_ARGUMENT => ErrorKind::InvalidData,
-        E_NOT_READY => ErrorKind::WouldBlock,
-        E_NOT_CONNECTED => ErrorKind::NotConnected,
-        _ => ErrorKind::Other,
-    };
-
-    std::io::Error::from(kind)
-}

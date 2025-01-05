@@ -334,7 +334,10 @@ fn shutdown_write() {
     stream.shutdown(Shutdown::Write).unwrap();
 
     let err = stream.write(DATA2).unwrap_err();
+    #[cfg(not(target_os = "moturus"))]
     assert_eq!(err.kind(), io::ErrorKind::BrokenPipe);
+    #[cfg(target_os = "moturus")]
+    assert_eq!(err.kind(), io::ErrorKind::NotConnected);
 
     // FIXME: we don't always receive the following event.
     expect_events(
