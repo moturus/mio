@@ -3,7 +3,7 @@
 
 use std::io::{self, IoSlice, IoSliceMut, Read, Write};
 use std::net::{self, Shutdown, SocketAddr};
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "moturus"))]
 use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
 use std::sync::{mpsc::channel, Arc, Barrier};
 use std::thread;
