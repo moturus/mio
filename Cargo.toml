@@ -1,7 +1,7 @@
 [package]
 edition = "2021"
 rust-version = "1.70"
-name = "mio"
+name = "mio-moturus"
 # When releasing to crates.io:
 # - Update CHANGELOG.md.
 # - Create git tag
@@ -52,6 +52,9 @@ libc = "0.2.159"
 [target.'cfg(target_os = "hermit")'.dependencies]
 libc = "0.2.159"
 
+[target.'cfg(target_os = "moturus")'.dependencies]
+moto-rt = "0.2.8"
+
 [target.'cfg(windows)'.dependencies.windows-sys]
 version = "0.52"
 features = [
@@ -90,6 +93,7 @@ targets = [
   "x86_64-unknown-netbsd",
   "x86_64-unknown-openbsd",
   "x86_64-unknown-hermit",
+  "x86_64-unknown-moturus",
 ]
 
 [package.metadata.playground]

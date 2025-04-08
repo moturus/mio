@@ -3,7 +3,7 @@
 
 use std::io::{self, IoSlice, IoSliceMut, Read, Write};
 use std::net::{self, Shutdown, SocketAddr};
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "moturus"))]
 use std::os::fd::{AsRawFd, FromRawFd, IntoRawFd};
 use std::sync::{mpsc::channel, Arc, Barrier};
 use std::thread;
@@ -334,7 +334,10 @@ fn shutdown_write() {
     stream.shutdown(Shutdown::Write).unwrap();
 
     let err = stream.write(DATA2).unwrap_err();
+    #[cfg(not(target_os = "moturus"))]
     assert_eq!(err.kind(), io::ErrorKind::BrokenPipe);
+    #[cfg(target_os = "moturus")]
+    assert_eq!(err.kind(), io::ErrorKind::NotConnected);
 
     // FIXME: we don't always receive the following event.
     expect_events(
@@ -402,12 +405,14 @@ fn shutdown_both() {
     assert_eq!(err.kind(), io::ErrorKind::BrokenPipe);
     #[cfg(windows)]
     assert_eq!(err.kind(), io::ErrorKind::ConnectionAborted);
+    #[cfg(target_os = "moturus")]
+    assert_eq!(err.kind(), io::ErrorKind::NotConnected);
 
     drop(stream);
     thread_handle.join().expect("unable to join thread");
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, target_os = "moturus"))]
 #[test]
 fn raw_fd() {
     init();
@@ -415,6 +420,8 @@ fn raw_fd() {
     let (thread_handle, address) = start_listener(1, None, false);
 
     let stream = TcpStream::connect(address).unwrap();
+    // Note: TCP Streams in Motor OS do not have local addresses until fully connected.
+    #[cfg(unix)]
     let address = stream.local_addr().unwrap();
 
     let raw_fd1 = stream.as_raw_fd();
@@ -423,6 +430,7 @@ fn raw_fd() {
 
     let stream = unsafe { TcpStream::from_raw_fd(raw_fd2) };
     assert_eq!(stream.as_raw_fd(), raw_fd1);
+    #[cfg(unix)]
     assert_eq!(stream.local_addr().unwrap(), address);
 
     thread_handle.join().expect("unable to join thread");
