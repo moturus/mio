@@ -1,8 +1,8 @@
 use std::fmt;
 use std::io::{self, IoSlice, IoSliceMut, Read, Write};
 use std::net::{self, Shutdown, SocketAddr};
-#[cfg(any(unix, target_os = "wasi"))]
-use std::os::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, RawFd};
+#[cfg(any(unix, target_os = "wasi", target_os = "moturus"))]
+use std::os::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, OwnedFd, RawFd};
 // TODO: once <https://github.com/rust-lang/rust/issues/126198> is fixed this
 // can use `std::os::fd` and be merged with the above.
 #[cfg(target_os = "hermit")]
@@ -11,7 +11,7 @@ use std::os::hermit::io::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, RawFd
 use std::os::windows::io::{AsRawSocket, FromRawSocket, IntoRawSocket, RawSocket};
 
 use crate::io_source::IoSource;
-#[cfg(not(target_os = "wasi"))]
+#[cfg(not(any(target_os = "wasi", target_os = "moturus")))]
 use crate::sys::tcp::{connect, new_for_addr};
 use crate::{event, Interest, Registry, Token};
 
@@ -85,7 +85,7 @@ impl TcpStream {
     /// entries in the routing cache.
     ///
     /// [write interest]: Interest::WRITABLE
-    #[cfg(not(target_os = "wasi"))]
+    #[cfg(not(any(target_os = "wasi", target_os = "moturus")))]
     pub fn connect(addr: SocketAddr) -> io::Result<TcpStream> {
         let socket = new_for_addr(addr)?;
         #[cfg(any(unix, target_os = "hermit"))]
@@ -93,6 +93,15 @@ impl TcpStream {
         #[cfg(windows)]
         let stream = unsafe { TcpStream::from_raw_socket(socket as _) };
         connect(&stream.inner, addr)?;
+        Ok(stream)
+    }
+
+    /// Create a new TCP stream and issue a non-blocking connect to the
+    /// specified address.
+    #[cfg(target_os = "moturus")]
+    pub fn connect(addr: SocketAddr) -> io::Result<TcpStream> {
+        let fd = crate::sys::tcp::connect(addr)?;
+        let stream = unsafe { TcpStream::from_raw_fd(fd) };
         Ok(stream)
     }
 
@@ -350,21 +359,21 @@ impl fmt::Debug for TcpStream {
     }
 }
 
-#[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
 impl IntoRawFd for TcpStream {
     fn into_raw_fd(self) -> RawFd {
         self.inner.into_inner().into_raw_fd()
     }
 }
 
-#[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
 impl AsRawFd for TcpStream {
     fn as_raw_fd(&self) -> RawFd {
         self.inner.as_raw_fd()
     }
 }
 
-#[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
 impl FromRawFd for TcpStream {
     /// Converts a `RawFd` to a `TcpStream`.
     ///
@@ -377,10 +386,30 @@ impl FromRawFd for TcpStream {
     }
 }
 
-#[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
+impl From<TcpStream> for OwnedFd {
+    fn from(tcp_stream: TcpStream) -> Self {
+        tcp_stream.inner.into_inner().into()
+    }
+}
+
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
 impl AsFd for TcpStream {
     fn as_fd(&self) -> BorrowedFd<'_> {
         self.inner.as_fd()
+    }
+}
+
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
+impl From<OwnedFd> for TcpStream {
+    /// Converts a `RawFd` to a `TcpStream`.
+    ///
+    /// # Notes
+    ///
+    /// The caller is responsible for ensuring that the socket is in
+    /// non-blocking mode.
+    fn from(fd: OwnedFd) -> Self {
+        TcpStream::from_std(From::from(fd))
     }
 }
 
@@ -417,7 +446,7 @@ impl From<TcpStream> for net::TcpStream {
         // mio::net::TcpStream which ensures that we actually pass in a valid file
         // descriptor/socket
         unsafe {
-            #[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+            #[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
             {
                 net::TcpStream::from_raw_fd(stream.into_raw_fd())
             }

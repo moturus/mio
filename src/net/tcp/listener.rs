@@ -1,6 +1,6 @@
 use std::net::{self, SocketAddr};
-#[cfg(any(unix, target_os = "wasi"))]
-use std::os::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, RawFd};
+#[cfg(any(unix, target_os = "wasi", target_os = "moturus"))]
+use std::os::fd::{AsFd, AsRawFd, BorrowedFd, FromRawFd, IntoRawFd, OwnedFd, RawFd};
 // TODO: once <https://github.com/rust-lang/rust/issues/126198> is fixed this
 // can use `std::os::fd` and be merged with the above.
 #[cfg(target_os = "hermit")]
@@ -13,7 +13,7 @@ use crate::io_source::IoSource;
 use crate::net::TcpStream;
 #[cfg(any(unix, target_os = "hermit"))]
 use crate::sys::tcp::set_reuseaddr;
-#[cfg(not(target_os = "wasi"))]
+#[cfg(not(any(target_os = "wasi", target_os = "moturus")))]
 use crate::sys::tcp::{bind, listen, new_for_addr};
 use crate::{event, sys, Interest, Registry, Token};
 
@@ -57,7 +57,7 @@ impl TcpListener {
     /// 2. Set the `SO_REUSEADDR` option on the socket on Unix.
     /// 3. Bind the socket to the specified address.
     /// 4. Calls `listen` on the socket to prepare it to receive new connections.
-    #[cfg(not(target_os = "wasi"))]
+    #[cfg(not(any(target_os = "wasi", target_os = "moturus")))]
     pub fn bind(addr: SocketAddr) -> io::Result<TcpListener> {
         let socket = new_for_addr(addr)?;
         #[cfg(any(unix, target_os = "hermit"))]
@@ -77,6 +77,16 @@ impl TcpListener {
 
         bind(&listener.inner, addr)?;
         listen(&listener.inner, 1024)?;
+        Ok(listener)
+    }
+
+    /// Convenience method to bind a new TCP listener to the specified address
+    /// to receive new connections.
+    #[cfg(target_os = "moturus")]
+    pub fn bind(addr: SocketAddr) -> io::Result<TcpListener> {
+        let fd = crate::sys::tcp::bind(addr)?;
+        let listener = unsafe { TcpListener::from_raw_fd(fd) };
+        crate::sys::tcp::listen(&listener.inner, 1024)?;
         Ok(listener)
     }
 
@@ -168,21 +178,21 @@ impl fmt::Debug for TcpListener {
     }
 }
 
-#[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
 impl IntoRawFd for TcpListener {
     fn into_raw_fd(self) -> RawFd {
         self.inner.into_inner().into_raw_fd()
     }
 }
 
-#[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
 impl AsRawFd for TcpListener {
     fn as_raw_fd(&self) -> RawFd {
         self.inner.as_raw_fd()
     }
 }
 
-#[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
 impl FromRawFd for TcpListener {
     /// Converts a `RawFd` to a `TcpListener`.
     ///
@@ -195,10 +205,30 @@ impl FromRawFd for TcpListener {
     }
 }
 
-#[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
+impl From<TcpListener> for OwnedFd {
+    fn from(tcp_listener: TcpListener) -> Self {
+        tcp_listener.inner.into_inner().into()
+    }
+}
+
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
 impl AsFd for TcpListener {
     fn as_fd(&self) -> BorrowedFd<'_> {
         self.inner.as_fd()
+    }
+}
+
+#[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
+impl From<OwnedFd> for TcpListener {
+    /// Converts a `RawFd` to a `TcpListener`.
+    ///
+    /// # Notes
+    ///
+    /// The caller is responsible for ensuring that the socket is in
+    /// non-blocking mode.
+    fn from(fd: OwnedFd) -> Self {
+        TcpListener::from_std(From::from(fd))
     }
 }
 
@@ -235,7 +265,7 @@ impl From<TcpListener> for net::TcpListener {
         // mio::net::TcpListener which ensures that we actually pass in a valid file
         // descriptor/socket
         unsafe {
-            #[cfg(any(unix, target_os = "hermit", target_os = "wasi"))]
+            #[cfg(any(unix, target_os = "hermit", target_os = "wasi", target_os = "moturus"))]
             {
                 net::TcpListener::from_raw_fd(listener.into_raw_fd())
             }
