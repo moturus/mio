@@ -20,6 +20,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use std::{fmt, io};
 
+#[cfg(target_os = "moturus")]
+use std::os::fd::{AsRawFd, RawFd};
+
 use crate::{event, sys, Events, Interest, Token};
 
 /// Polls for readiness events on all registered values.
@@ -750,6 +753,13 @@ impl fmt::Debug for Registry {
         target_os = "vita"
     )),
 ))]
+impl AsRawFd for Registry {
+    fn as_raw_fd(&self) -> RawFd {
+        self.selector.as_raw_fd()
+    }
+}
+
+#[cfg(target_os = "moturus")]
 impl AsRawFd for Registry {
     fn as_raw_fd(&self) -> RawFd {
         self.selector.as_raw_fd()
