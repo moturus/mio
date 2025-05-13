@@ -1,3 +1,4 @@
+#![allow(unexpected_cfgs)]
 #![deny(
     missing_docs,
     missing_debug_implementations,
@@ -11,7 +12,7 @@
 // Disallow warnings in examples.
 #![doc(test(attr(deny(warnings))))]
 
-#![feature(moturus_ext)]
+#![cfg_attr(target_os = "moturus", feature(moturus_ext))]
 
 //! Mio is a fast, low-level I/O library for Rust focusing on non-blocking APIs
 //! and event notification for building high performance I/O apps with as little
