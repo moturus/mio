@@ -413,7 +413,11 @@ fn bind_twice_bad() {
 fn multiple_writes_immediate_success() {
     init();
 
+    #[cfg(not(target_os = "motor"))]
     const N: usize = 16;
+    #[cfg(target_os = "motor")]
+    const N: usize = 4; // Motor OS has a smaller write buffer.
+
     let listener = net::TcpListener::bind("127.0.0.1:0").unwrap();
     let addr = listener.local_addr().unwrap();
 

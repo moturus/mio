@@ -245,8 +245,13 @@ fn registry_operations_are_thread_safe() {
     let registry2 = Arc::clone(&registry);
     let registry3 = Arc::clone(&registry);
 
+    println!("Motor OS: uncomment UDP-related work.");
+    #[cfg(target_os = "motor")]
+    let barrier = Arc::new(Barrier::new(3));
+    #[cfg(not(target_os = "motor"))]
     let barrier = Arc::new(Barrier::new(4));
     let barrier1 = Arc::clone(&barrier);
+    #[cfg(not(target_os = "motor"))]
     let barrier2 = Arc::clone(&barrier);
     let barrier3 = Arc::clone(&barrier);
 
@@ -272,6 +277,7 @@ fn registry_operations_are_thread_safe() {
         barrier1.wait();
     });
 
+    #[cfg(not(target_os = "motor"))]
     let handle2 = thread::spawn(move || {
         let mut udp_socket = UdpSocket::bind(any_local_address()).unwrap();
         registry_ops_flow(
@@ -309,6 +315,7 @@ fn registry_operations_are_thread_safe() {
         &mut events,
         vec![
             ExpectEvent::new(ID1, Interest::READABLE),
+            #[cfg(not(target_os = "motor"))]
             ExpectEvent::new(ID2, Interest::WRITABLE),
             ExpectEvent::new(ID3, Interest::WRITABLE),
         ],
@@ -318,6 +325,7 @@ fn registry_operations_are_thread_safe() {
     barrier.wait();
 
     handle1.join().unwrap();
+    #[cfg(not(target_os = "motor"))]
     handle2.join().unwrap();
     handle3.join().unwrap();
 }

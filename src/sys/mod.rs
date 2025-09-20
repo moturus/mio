@@ -13,6 +13,7 @@
 //! * `tcp` and `udp` modules: see the [`crate::net`] module.
 //! * `Waker`: see [`crate::Waker`].
 
+#[cfg(not(target_os = "motor"))]
 cfg_os_poll! {
     macro_rules! debug_detail {
         (
@@ -69,6 +70,12 @@ cfg_os_poll! {
     pub(crate) use self::wasi::*;
 }
 
+#[cfg(target_os = "motor")]
+cfg_os_poll! {
+    mod motor;
+    pub(crate) use self::motor::*;
+}
+
 cfg_not_os_poll! {
     mod shell;
     pub(crate) use self::shell::*;
@@ -106,7 +113,8 @@ cfg_not_os_poll! {
     target_os = "windows",
     target_os = "redox",
     target_os = "espidf",
-    target_os = "horizon"
+    target_os = "horizon",
+    target_os = "motor"
 ))]
 pub(crate) const LISTEN_BACKLOG_SIZE: i32 = 128;
 
@@ -137,6 +145,7 @@ pub(crate) const LISTEN_BACKLOG_SIZE: i32 = -1;
     target_os = "redox",
     target_os = "espidf",
     target_os = "horizon",
+    target_os = "motor",
     target_os = "linux",
     target_os = "freebsd",
     target_os = "openbsd",
