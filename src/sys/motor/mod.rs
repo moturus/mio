@@ -1,5 +1,3 @@
-pub use std::os::motor::map_motor_error;
-
 mod selector;
 pub(crate) use self::selector::{event, Event, Events, Selector};
 
@@ -60,3 +58,6 @@ cfg_io_source! {
     }
 }
 
+pub(crate) fn map_motor_error(err: moto_rt::ErrorCode) -> std::io::Error {
+    std::io::Error::from_raw_os_error(err.into())
+}
