@@ -58,6 +58,6 @@ cfg_io_source! {
     }
 }
 
-pub(crate) fn map_motor_error(err: moto_rt::ErrorCode) -> std::io::Error {
-    std::io::Error::from_raw_os_error(err.into())
+pub(crate) fn map_motor_error(err: moto_rt::Error) -> std::io::Error {
+    std::io::Error::from_raw_os_error((err as moto_rt::ErrorCode).into())
 }
